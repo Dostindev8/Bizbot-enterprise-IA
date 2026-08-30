@@ -1,0 +1,42 @@
+name: BizBot AI Enterprise CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Lint, Typecheck & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build Shared Packages
+        run: |
+          pnpm --filter @bizbot/shared-types run build
+          pnpm --filter @bizbot/ui run build
+
+      - name: Typecheck Entire Monorepo
+        run: pnpm typecheck
+
+      - name: Run Backend Unit & Integration Tests (>80% target)
+        run: pnpm --filter @bizbot/server run test
+
+      - name: Build Production Client Bundle
+        run: pnpm --filter @bizbot/client run build

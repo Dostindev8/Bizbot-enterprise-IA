@@ -1,0 +1,18 @@
+# BizBot AI — GOD-STACK Cursor Rules (v3.0.0 Enterprise)
+# Protocolo GOD-STACK-ING v6.2 — Logic Code Spot (LCS) Software Solutions
+
+# LEYES IRROMPIBLES (APLICAN A CADA LÍNEA Y ARCHIVO):
+# ① TypeScript strict absoluto — CERO uso de `any` en todo el monorepo.
+# ② Toda query de negocio a MongoDB DEBE filtrar por orgId (vía plugin de Mongoose global, nunca confiando en que cada handler lo recuerde manualmente).
+# ③ Validación con Zod en frontend Y backend, usando los MISMOS schemas compartidos desde packages/shared-types — cero duplicación de reglas de validación.
+# ④ Manejo de errores completo en cada capa + logging estructurado (Pino) con correlationId propagado end-to-end. Formato de error estándar definido en la sección 06 del blueprint:
+#    { "success": false, "error": { "code": "...", "message": "...", "correlationId": "...", "details": [...] } }
+# ⑤ Secrets SOLO vía process.env (server) o VITE_PUBLIC_* (client). Nunca hardcodeados, nunca en el repo. Genera siempre un .env.example completo y documentado.
+# ⑥ Rate limiting obligatorio en TODAS las rutas públicas y de autenticación (Redis con fallback in-memory).
+# ⑦ Streaming SSE para el chat de IA. Circuit breaker en TODA llamada al LLM y a integraciones externas (Google Calendar, WhatsApp/Twilio, Stripe).
+# ⑧ Mobile-first desde 375px hacia arriba. WCAG 2.2 AA. Focus visible y focus trap correcto en modales. Cero layout shift.
+# ⑨ Cobertura de tests > 80% en lógica crítica (auth, billing, RAG router, orgId isolation).
+# ⑩ EXTEND-NEVER-OVERWRITE: extender sin romper lo funcional.
+# ⑪ Documentar es construir: cada módulo lleva su README técnico + OpenAPI actualizado.
+# ⑫ Cada entrega incluye una línea explícita de consideración de seguridad.
+# ⑬ Verificación Viva: verificar versiones vigentes y no inventar datos.
