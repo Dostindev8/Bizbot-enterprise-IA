@@ -1,0 +1,17 @@
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+coverage
+.nyc_output
+.cursor
+.vscode
+.idea
+agent-transcripts
+terminals
+*.log
+**/*.local
+.vercel

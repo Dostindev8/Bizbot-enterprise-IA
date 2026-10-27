@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+# No sitemap until the production domain is confirmed.

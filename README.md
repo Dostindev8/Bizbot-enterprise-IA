@@ -100,4 +100,23 @@ pnpm --filter @bizbot/client dev
 ✅ Pipeline de CI/CD en GitHub Actions y orquestación Docker Compose lista para producción.
 
 ---
+
+## ☁️ Producción en Vercel (frontend SPA)
+
+El cliente React/Vite se publica como estático. **Ningún secreto de servidor entra al bundle.**
+
+| Ajuste | Valor |
+|---|---|
+| Install | `pnpm install --frozen-lockfile=false` |
+| Build | `pnpm run build:web` |
+| Output | `client/dist` |
+| Env públicas | `VITE_PUBLIC_API_URL=/api/v1` · `VITE_PUBLIC_APP_NAME=BizBot AI Enterprise` |
+
+El API Express (Mongo, JWT, Redis, LLM) **no** se despliega en este proyecto Vercel: requiere `JWT_SECRET` y `MONGODB_URI` en un host de backend, configurados solo en el dashboard del proveedor. Login/CRM/chat en producción quedan en modo degradado hasta ese binding (🔒).
+
+```bash
+npx vercel --prod --yes
+```
+
+---
 **Logic Code Spot (LCS) Software Solutions — 2026**

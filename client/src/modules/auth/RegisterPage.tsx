@@ -90,7 +90,7 @@ export const RegisterPage: React.FC = () => {
 
           <AuthInput
             label="Nombre Completo del Administrador"
-            placeholder="Ej. Dostin Santana"
+            placeholder="Ej. Ana Pérez"
             icon={<User className="w-4 h-4" />}
             error={errors.adminName?.message}
             {...register('adminName')}

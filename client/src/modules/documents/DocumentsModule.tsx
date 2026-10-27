@@ -26,7 +26,7 @@ export const DocumentsModule: React.FC = () => {
         },
         signatories: [
           { name: 'Director Legal', email: 'legal@corporativo.com', role: 'client' },
-          { name: 'Dostin Santana (LCS)', email: 'ceo@logiccodespot.com', role: 'vendor' },
+          { name: 'Equipo Legal BizBot', email: 'legal@bizbot.ai', role: 'vendor' },
         ],
       }),
     onSuccess: () => {

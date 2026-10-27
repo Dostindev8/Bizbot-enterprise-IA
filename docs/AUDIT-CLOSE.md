@@ -17,6 +17,8 @@ Playbook: GOD-STACK-ING v8.3.1 `references/audit-cierre-playbook.md`
 | 7 | Notifs | 🔒 | Magic link se genera en Redis; **no hay envío SMTP/Twilio live**. | Canal no “terminado” |
 | 8 | AuditLog | ✅ | Append en register/login/billing. TTL 365d. PII limitada a email de actor. | Bajo |
 | 9 | CI | ⚠️ | GitHub Actions: typecheck + unit + build client. Sin Playwright/axe/`npm audit` gate. | Medio |
+| 10 | Deploy Vercel | ✅ | SPA Ready: https://bizbot-ai-enterprise.vercel.app — `dpl_CH3zQQzpF6G2hgFJggc5wn42PY9K`. Headers CSP/HSTS/XFO. Cero secretos en bundle. | Bajo (web) |
+| 11 | API prod | 🔒 | Express no va en este proyecto Vercel. `/api/v1/*` → 404. Requiere host + `JWT_SECRET` + `MONGODB_URI` en dashboard (nunca en git). | Alto hasta binding |
 
 ## 🔒 Bloqueadores de tercero (no marcar terminados)
 
