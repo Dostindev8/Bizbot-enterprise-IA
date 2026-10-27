@@ -43,6 +43,7 @@ export const BillingModule: React.FC = () => {
             tier: 'starter' as const,
             name: 'Starter',
             priceMonthlyUsd: 49,
+            priceMonthlyCents: 4900,
             maxConversations: 1000,
             features: [
               '1,000 conversaciones / mes',
@@ -56,6 +57,7 @@ export const BillingModule: React.FC = () => {
             tier: 'pro' as const,
             name: 'Pro',
             priceMonthlyUsd: 149,
+            priceMonthlyCents: 14900,
             maxConversations: 10000,
             features: [
               '10,000 conversaciones / mes',
@@ -70,6 +72,7 @@ export const BillingModule: React.FC = () => {
             tier: 'business' as const,
             name: 'Business',
             priceMonthlyUsd: 499,
+            priceMonthlyCents: 49900,
             maxConversations: 50000,
             features: [
               '50,000 conversaciones / mes',
@@ -84,6 +87,7 @@ export const BillingModule: React.FC = () => {
             tier: 'enterprise' as const,
             name: 'Enterprise',
             priceMonthlyUsd: 1200,
+            priceMonthlyCents: 120000,
             maxConversations: 200000,
             features: [
               '200,000+ conversaciones / mes',
@@ -112,7 +116,11 @@ export const BillingModule: React.FC = () => {
               <div>
                 <h3 className="text-lg font-black text-[#E8EEF8] mb-1">{plan.name}</h3>
                 <div className="my-4">
-                  <span className="text-3xl font-black text-[#E8EEF8]">${plan.priceMonthlyUsd}</span>
+                  <span className="text-3xl font-black text-[#E8EEF8]">
+                    ${'priceMonthlyCents' in plan && typeof plan.priceMonthlyCents === 'number'
+                      ? (plan.priceMonthlyCents / 100).toFixed(0)
+                      : plan.priceMonthlyUsd}
+                  </span>
                   <span className="text-xs text-[#8B9BB8]"> USD / mes</span>
                 </div>
 

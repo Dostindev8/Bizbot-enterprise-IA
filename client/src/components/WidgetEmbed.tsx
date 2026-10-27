@@ -63,10 +63,9 @@ export const WidgetEmbed: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {/* Expanded Widget Window */}
+    <div className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end max-w-[calc(100vw-1.5rem)]">
       {isOpen && (
-        <div className="mb-4 w-90 sm:w-96 h-[520px] rounded-2xl bg-[#131A2B]/95 backdrop-blur-2xl border border-[#00D4FF]/30 shadow-[0_0_60px_rgba(0,212,255,0.22)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="mb-3 sm:mb-4 w-[min(24rem,calc(100vw-1.5rem))] h-[min(520px,70dvh)] rounded-2xl bg-[#131A2B]/95 backdrop-blur-2xl border border-[#00D4FF]/30 shadow-[0_0_60px_rgba(0,212,255,0.22)] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-[#0B0F19] to-[#131A2B] border-b border-[#23304E] flex items-center justify-between">
             <div className="flex items-center gap-3">

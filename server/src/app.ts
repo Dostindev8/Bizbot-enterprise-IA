@@ -1,40 +1,41 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoose from 'mongoose';
 import { correlationIdMiddleware } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { generalRateLimiter } from './middleware/rateLimiter.js';
 import { apiV1Routes } from './routes/index.js';
 import { env } from './config/env.js';
 
 export function createApp(): Express {
   const app = express();
 
-  // Security Headers
+  app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+
   app.use(
     helmet({
-      contentSecurityPolicy: false, // handled by Nginx / Frontend headers
+      contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     })
   );
 
-  // CORS
   app.use(
     cors({
       origin: [env.CLIENT_URL, 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-correlation-id', 'x-widget-org'],
     })
   );
 
-  // Parsers
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-  // Correlation ID
   app.use(correlationIdMiddleware);
 
-  // Health checks
   app.get('/healthz', (_req: Request, res: Response) => {
     res.status(200).json({
       status: 'healthy',
@@ -46,13 +47,28 @@ export function createApp(): Express {
   });
 
   app.get('/readyz', (_req: Request, res: Response) => {
-    res.status(200).json({ status: 'ready', ready: true });
+    const mongoReady = mongoose.connection.readyState === 1;
+    const degraded = env.NODE_ENV !== 'production' && !mongoReady;
+    res.status(mongoReady || degraded ? 200 : 503).json({
+      status: mongoReady ? 'ready' : 'degraded',
+      ready: mongoReady || degraded,
+      checks: { mongodb: mongoReady },
+    });
   });
 
-  // REST API v1
-  app.use('/api/v1', apiV1Routes);
+  app.use('/api/v1', generalRateLimiter, apiV1Routes);
 
-  // Global Error Handler
+  app.use((req: Request, res: Response) => {
+    res.status(404).json({
+      success: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: `Ruta no encontrada: ${req.method} ${req.path}`,
+        correlationId: req.correlationId || 'unknown_req',
+      },
+    });
+  });
+
   app.use(errorHandler);
 
   return app;

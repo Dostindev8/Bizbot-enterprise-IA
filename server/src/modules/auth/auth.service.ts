@@ -15,7 +15,9 @@ import {
 
 export class AuthService {
   async register(data: RegisterRequest, correlationId: string): Promise<AuthResponse> {
-    const existingUser = await User.findOne({ email: data.email.toLowerCase() });
+    const existingUser = await User.findOne({ email: data.email.toLowerCase() }).setOptions({
+      bypassOrg: true,
+    });
     if (existingUser) {
       throw new AppError(409, 'USER_EXISTS', 'Ya existe un usuario con este correo electrónico');
     }
@@ -93,7 +95,7 @@ export class AuthService {
   }
 
   async login(data: LoginRequest, correlationId: string): Promise<AuthResponse> {
-    const user = await User.findOne({ email: data.email.toLowerCase() });
+    const user = await User.findOne({ email: data.email.toLowerCase() }).setOptions({ bypassOrg: true });
     if (!user) {
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Credenciales incorrectas');
     }
@@ -136,14 +138,18 @@ export class AuthService {
       throw new AppError(401, 'MFA_EXPIRED', 'Sesión MFA expirada o inválida');
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).setOptions({ bypassOrg: true });
     if (!user) {
       throw new AppError(404, 'USER_NOT_FOUND', 'Usuario no encontrado');
     }
 
-    // In production, verify TOTP with speakeasy/otplib; allow 123456 in dev/test
-    if (code !== '123456' && code !== user.mfaSecret) {
-      throw new AppError(400, 'INVALID_MFA_CODE', 'Código MFA incorrecto (código demo: 123456)');
+    const allowDemo =
+      env.NODE_ENV !== 'production' || Boolean(env.ALLOW_DEMO_MFA);
+    const demoOk = allowDemo && code === '123456';
+    const secretOk = Boolean(user.mfaSecret) && code === user.mfaSecret;
+
+    if (!demoOk && !secretOk) {
+      throw new AppError(400, 'INVALID_MFA_CODE', 'Código MFA incorrecto');
     }
 
     await redisClient.del(`mfa_pending:${mfaToken}`);
@@ -155,20 +161,32 @@ export class AuthService {
 
   async refreshToken(token: string): Promise<AuthResponse> {
     try {
-      const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; orgId: string };
-      const user = await User.findById(decoded.id);
+      const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; orgId: string; typ?: string };
+      if (decoded.typ && decoded.typ !== 'refresh') {
+        throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Token de renovación inválido o expirado');
+      }
+
+      const user = await User.findById(decoded.id).setOptions({ bypassOrg: true });
       if (!user) {
         throw new AppError(401, 'USER_NOT_FOUND', 'Usuario no encontrado');
       }
 
+      if (user.refreshTokenHash) {
+        const matches = await bcrypt.compare(token, user.refreshTokenHash);
+        if (!matches) {
+          throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Token de renovación inválido o expirado');
+        }
+      }
+
       return this.generateAuthTokens(user, user.orgId);
     } catch (err) {
+      if (err instanceof AppError) throw err;
       throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Token de renovación inválido o expirado');
     }
   }
 
   async requestMagicLink(email: string): Promise<{ success: boolean; message: string }> {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() }).setOptions({ bypassOrg: true });
     if (!user) {
       // Return success to avoid email enumeration attack
       return { success: true, message: 'Si el correo existe, se ha enviado un enlace de acceso.' };
@@ -196,7 +214,7 @@ export class AuthService {
     };
   }
 
-  private generateAuthTokens(user: IUserDoc, orgId: string): AuthResponse {
+  private async generateAuthTokens(user: IUserDoc, orgId: string): Promise<AuthResponse> {
     const payload = {
       id: user.id,
       orgId,
@@ -209,9 +227,12 @@ export class AuthService {
       expiresIn: '15m',
     });
 
-    const refreshToken = jwt.sign({ id: user.id, orgId }, env.JWT_SECRET, {
+    const refreshToken = jwt.sign({ id: user.id, orgId, typ: 'refresh' }, env.JWT_SECRET, {
       expiresIn: '7d',
     });
+
+    user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    await user.save();
 
     return {
       accessToken,

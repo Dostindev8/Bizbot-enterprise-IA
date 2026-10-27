@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { useAppStore, NavModule } from '../../lib/store.js';
-import { GlassPanel, Badge, Button } from '@bizbot/ui';
+import { GlassPanel, Badge, Button, EmptyState, Skeleton } from '@bizbot/ui';
 import {
   MessageSquare,
   DollarSign,
@@ -19,10 +19,37 @@ import {
 
 export const DashboardModule: React.FC = () => {
   const { setCurrentModule, user } = useAppStore();
-  const { data: summary } = useQuery({
+  const { data: summary, isLoading, isError, refetch } = useQuery({
     queryKey: ['analytics-summary'],
     queryFn: () => api.getAnalyticsSummary(),
+    retry: 1,
   });
+
+  if (isError) {
+    return (
+      <EmptyState
+        variant="error"
+        title="No se pudo cargar el dashboard"
+        description="La API de analíticas no respondió. Reintenta o entra en modo demo."
+        action={
+          <Button variant="glass" size="sm" onClick={() => void refetch()}>
+            Reintentar
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-busy="true">
+        <Skeleton variant="card" />
+        <Skeleton variant="card" />
+        <Skeleton variant="card" />
+        <Skeleton variant="card" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

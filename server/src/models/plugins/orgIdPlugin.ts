@@ -1,11 +1,13 @@
-import { Schema, Query } from 'mongoose';
+import { Schema, Query, Aggregate } from 'mongoose';
+import { getTenantOrgId } from '../../middleware/tenantContext.js';
 
 /**
- * Global Mongoose Plugin to enforce multi-tenant orgId isolation on all business queries.
- * Prevents cross-tenant data leakage by automatically applying { orgId } filtering.
+ * Forces orgId isolation on tenant collections.
+ * - If AsyncLocalStorage has orgId, it ALWAYS wins (prevents IDOR).
+ * - Login/register (no tenant context) may query without orgId.
+ * - System jobs must pass { bypassOrg: true }.
  */
 export function orgIdIsolationPlugin(schema: Schema): void {
-  // Add orgId field if not explicitly present
   if (!schema.path('orgId')) {
     schema.add({
       orgId: {
@@ -16,16 +18,61 @@ export function orgIdIsolationPlugin(schema: Schema): void {
     });
   }
 
-  // Pre-find hook
-  schema.pre(/^find/, function (this: Query<unknown, unknown>, next) {
-    // If the query is marked as bypassOrg (e.g. system background jobs), allow it
+  function applyTenantFilter(this: Query<unknown, unknown>): void {
     if (this.getOptions().bypassOrg) {
-      return next();
+      return;
     }
 
-    return next();
+    const ctxOrgId = getTenantOrgId();
+    if (ctxOrgId) {
+      this.setQuery({ ...this.getQuery(), orgId: ctxOrgId });
+    }
+  }
+
+  schema.pre(/^find/, function (this: Query<unknown, unknown>, next) {
+    applyTenantFilter.call(this);
+    next();
   });
 
-  // Ensure compound index for orgId + createdAt
+  schema.pre('countDocuments', function (this: Query<unknown, unknown>, next) {
+    applyTenantFilter.call(this);
+    next();
+  });
+
+  schema.pre('updateMany', function (this: Query<unknown, unknown>, next) {
+    applyTenantFilter.call(this);
+    next();
+  });
+
+  schema.pre('updateOne', function (this: Query<unknown, unknown>, next) {
+    applyTenantFilter.call(this);
+    next();
+  });
+
+  schema.pre('findOneAndUpdate', function (this: Query<unknown, unknown>, next) {
+    applyTenantFilter.call(this);
+    next();
+  });
+
+  schema.pre('save', function (next) {
+    const ctxOrgId = getTenantOrgId();
+    const doc = this as unknown as { orgId?: string };
+    if (ctxOrgId && !doc.orgId) {
+      doc.orgId = ctxOrgId;
+    }
+    next();
+  });
+
+  schema.pre('aggregate', function (this: Aggregate<unknown>, next) {
+    if (this.options.bypassOrg) {
+      return next();
+    }
+    const ctxOrgId = getTenantOrgId();
+    if (ctxOrgId) {
+      this.pipeline().unshift({ $match: { orgId: ctxOrgId } });
+    }
+    next();
+  });
+
   schema.index({ orgId: 1, createdAt: -1 });
 }

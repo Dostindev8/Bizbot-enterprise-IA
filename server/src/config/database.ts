@@ -7,12 +7,15 @@ export async function connectDatabase(): Promise<void> {
 
   try {
     await mongoose.connect(env.MONGODB_URI, {
-      autoIndex: true,
+      autoIndex: env.NODE_ENV !== 'production',
       serverSelectionTimeoutMS: 5000,
     });
-    logger.info({ uri: env.MONGODB_URI }, 'Connected to MongoDB Enterprise database');
+    logger.info(
+      { host: mongoose.connection.host, db: mongoose.connection.name },
+      'Connected to MongoDB'
+    );
   } catch (error) {
-    logger.warn({ error }, 'MongoDB connection warning — running in resilient mode');
+    logger.warn({ err: error instanceof Error ? error.message : 'unknown' }, 'MongoDB connection warning — running in resilient mode');
   }
 }
 
@@ -21,4 +24,8 @@ export async function disconnectDatabase(): Promise<void> {
     await mongoose.disconnect();
     logger.info('Disconnected from MongoDB');
   }
+}
+
+export function isDatabaseReady(): boolean {
+  return mongoose.connection.readyState === 1;
 }

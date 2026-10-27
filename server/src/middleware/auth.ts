@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AppError } from './errorHandler.js';
 import { UserRole, UserPermission } from '@bizbot/shared-types';
+import { runWithTenant } from './tenantContext.js';
 
 export interface JwtUserPayload {
   id: string;
@@ -29,15 +30,49 @@ export function authenticateJWT(req: Request, _res: Response, next: NextFunction
   }
 
   const token = authHeader.split(' ')[1];
+  if (!token) {
+    throw new AppError(401, 'UNAUTHORIZED', 'Token de autenticación no proporcionado');
+  }
 
   try {
-    const decoded = jwt.verify(token!, env.JWT_SECRET) as JwtUserPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as unknown as JwtUserPayload;
+    if (!decoded.orgId || !decoded.id) {
+      throw new AppError(401, 'INVALID_TOKEN', 'Token inválido o expirado');
+    }
     req.user = decoded;
     req.orgId = decoded.orgId;
-    next();
+    runWithTenant(decoded.orgId, () => next());
   } catch (error) {
+    if (error instanceof AppError) throw error;
     throw new AppError(401, 'INVALID_TOKEN', 'Token inválido o expirado');
   }
+}
+
+export function optionalJWT(req: Request, _res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    next();
+    return;
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as unknown as JwtUserPayload;
+    if (decoded.orgId && decoded.id) {
+      req.user = decoded;
+      req.orgId = decoded.orgId;
+      runWithTenant(decoded.orgId, () => next());
+      return;
+    }
+  } catch {
+    // Widget público: token inválido no bloquea, opera como anónimo
+  }
+  next();
 }
 
 export function requireOrg(req: Request, _res: Response, next: NextFunction): void {

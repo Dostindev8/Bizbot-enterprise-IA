@@ -9,7 +9,9 @@ import { logger } from '../../config/logger.js';
 export class ChatController {
   public async handleChatStream(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const orgId = req.orgId || req.user?.orgId || 'org_demo';
+      const widgetOrg =
+        typeof req.headers['x-widget-org'] === 'string' ? req.headers['x-widget-org'] : undefined;
+      const orgId = req.orgId || req.user?.orgId || widgetOrg || 'org_public_widget';
       const validated = ChatRequestSchema.parse(req.body);
 
       let conversation = validated.conversationId

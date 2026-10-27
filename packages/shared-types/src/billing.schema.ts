@@ -14,6 +14,7 @@ export const SubscriptionPlanDetailsSchema = z.object({
   tier: PlanTierSchema,
   name: z.string(),
   priceMonthlyUsd: z.number(),
+  priceMonthlyCents: z.number().int().nonnegative(),
   maxConversations: z.number().int(),
   features: z.array(z.string()),
   stripePriceId: z.string().optional(),
@@ -33,8 +34,9 @@ export const SubscriptionSchema = z.object({
 
 export const CreateCheckoutSessionRequestSchema = z.object({
   plan: PlanTierSchema,
-  successUrl: z.string().url(),
-  cancelUrl: z.string().url(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+  previewHash: z.string().min(16).optional(),
 });
 
 export type SubscriptionStatus = z.infer<typeof SubscriptionStatusSchema>;

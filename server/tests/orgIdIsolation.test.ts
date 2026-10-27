@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Schema } from 'mongoose';
 import { orgIdIsolationPlugin } from '../src/models/plugins/orgIdPlugin.js';
+import { runWithTenant, getTenantOrgId } from '../src/middleware/tenantContext.js';
 
 describe('Multi-Tenant orgId Isolation Plugin', () => {
   it('should add orgId field to schema with required true and indexed', () => {
@@ -23,5 +24,13 @@ describe('Multi-Tenant orgId Isolation Plugin', () => {
     orgIdIsolationPlugin(testSchema);
     const indexes = testSchema.indexes();
     expect(indexes.some(([fields]) => fields.orgId === 1)).toBe(true);
+  });
+
+  it('propagates tenant orgId via AsyncLocalStorage', () => {
+    expect(getTenantOrgId()).toBeUndefined();
+    runWithTenant('org_alpha', () => {
+      expect(getTenantOrgId()).toBe('org_alpha');
+    });
+    expect(getTenantOrgId()).toBeUndefined();
   });
 });

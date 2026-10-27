@@ -68,7 +68,7 @@ export class AuthController {
       }
 
       const user = await User.findById(req.user.id);
-      const org = await Organization.findById(req.user.orgId);
+      const org = await Organization.findById(req.user.orgId).setOptions({ bypassOrg: true });
 
       if (!user || !org) {
         throw new AppError(404, 'NOT_FOUND', 'Usuario u organización no encontrada');

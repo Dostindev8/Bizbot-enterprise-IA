@@ -33,9 +33,13 @@ export const useAppStore = create<AppState>((set) => ({
   user: null,
   organization: null,
   isAuthenticated: !!localStorage.getItem('bizbot_access_token'),
-  isSidebarOpen: true,
+  isSidebarOpen: false,
 
-  setCurrentModule: (module) => set({ currentModule: module }),
+  setCurrentModule: (module) =>
+    set({
+      currentModule: module,
+      isSidebarOpen: false,
+    }),
 
   setAuth: (user, org, accessToken, refreshToken) => {
     if (accessToken) localStorage.setItem('bizbot_access_token', accessToken);

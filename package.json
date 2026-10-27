@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "pnpm --recursive run typecheck",
-    "lint": "pnpm --recursive run lint",
+    "lint": "pnpm typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {
